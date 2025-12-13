@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Wynik estymacji</h1>
+
+<p>Predykcja: {{ predicted }}</p>
+<p>Twoja wycena: {{ user_price }}</p>
+
+<a href="{% url 'estimation-form' %}">Wróć do formularza</a>
+{% endblock %}
