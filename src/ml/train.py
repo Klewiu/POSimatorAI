@@ -1,25 +1,44 @@
 import pandas as pd
 import joblib
+import numpy as np
+from pathlib import Path
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
-from pathlib import Path
 
-# Ścieżka do danych
+# =========================
+# KONFIGURACJA
+# =========================
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "pos_estimations.csv"
+MODEL_DIR = Path(__file__).resolve().parent
 
-# 1. Wczytanie danych jako stringi (bez automatycznej konwersji)
-df = pd.read_csv(DATA_PATH, sep=";", encoding="utf-8-sig", dtype=str)
+SEGMENT_THRESHOLD = 20  # granica dla modelu LARGE
 
-# 2. Usunięcie zbędnych spacji i niewidocznych znaków
-df = df.apply(lambda col: col.map(lambda x: x.strip().replace('\xa0', '') if isinstance(x, str) else x))
 
-# 3. Kolumny numeryczne do konwersji
+# =========================
+# 1. WCZYTANIE DANYCH
+# =========================
+df = pd.read_csv(
+    DATA_PATH,
+    sep=";",
+    encoding="utf-8-sig",
+    dtype=str
+)
+
+df = df.apply(
+    lambda col: col.map(
+        lambda x: x.strip().replace("\xa0", "") if isinstance(x, str) else x
+    )
+)
+
+# =========================
+# 2. KOLUMNY NUMERYCZNE
+# =========================
 numeric_features = [
     "naklad_szt",
     "objetosc_m3",
@@ -31,66 +50,116 @@ numeric_features = [
     "led_mb",
     "tworzywa_m2",
     "koszty_pozostale",
+    "stopien_skomplikowania",
     "cena"
 ]
 
-# Konwersja liczbowych kolumn na float (zamiana przecinka na kropkę)
 for col in numeric_features:
-    df[col] = pd.to_numeric(df[col].str.replace(',', '.'), errors='coerce')
+    df[col] = pd.to_numeric(
+        df[col].str.replace(",", ".", regex=False),
+        errors="coerce"
+    )
 
-# Uzupełnienie braków w kolumnach numerycznych średnią kolumny
-df[numeric_features] = df[numeric_features].fillna(df[numeric_features].mean())
+df[numeric_features] = df[numeric_features].fillna(
+    df[numeric_features].mean()
+)
 
-# 4. Kolumny kategoryczne
-categorical_features = ["rodzaj_tworzywa", "rodzaj_displaya", "stopien_skomplikowania"]
+# =========================
+# 3. KOLUMNY KATEGORYCZNE
+# =========================
+categorical_features = [
+    "rodzaj_tworzywa",
+    "rodzaj_displaya"
+]
 
-# Uzupełnienie braków w kategoriach
 df[categorical_features] = df[categorical_features].fillna("Unknown")
 
-# 5. Target i features
-y = df["cena"]
-X = df.drop(columns=["cena"])
 
-print("Brakujące wartości w targetcie:", y.isna().sum())
+# =========================
+# 4. PODZIAŁ DANYCH
+# =========================
+df_large = df[df["naklad_szt"] > SEGMENT_THRESHOLD].copy()
 
-# 6. Preprocessing
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("num", StandardScaler(), numeric_features[:-1]),  # wszystkie numeryczne oprócz targetu
-        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
-    ]
+print("Rekordy GLOBAL:", len(df))
+print(f"Rekordy LARGE (>{SEGMENT_THRESHOLD}):", len(df_large))
+
+
+# =========================
+# 5. FUNKCJA TRENUJĄCA MODEL (log(y))
+# =========================
+def train_model(df_train, label):
+    y = np.log(df_train["cena"])  # LOG TARGET
+    X = df_train.drop(columns=["cena"])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", "passthrough", numeric_features[:-1]),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
+        ]
+    )
+
+    model = RandomForestRegressor(
+        n_estimators=600,
+        max_depth=10,
+        min_samples_leaf=3,
+        min_samples_split=5,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("model", model),
+        ]
+    )
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    pipeline.fit(X_train, y_train)
+
+    y_pred_log = pipeline.predict(X_test)
+    y_pred = np.exp(y_pred_log)  # odwracamy log
+
+    y_test_exp = np.exp(y_test)
+
+    print(f"\n📊 WYNIKI – {label}")
+    print("MAE test:", round(mean_absolute_error(y_test_exp, y_pred), 2))
+    print("R2 test:", round(r2_score(y_test, y_pred_log), 3))
+
+    mae_cv = -cross_val_score(
+        pipeline,
+        X,
+        y,
+        scoring="neg_mean_absolute_error",
+        cv=5,
+        n_jobs=-1
+    )
+
+    print("MAE CV mean (log target):", round(mae_cv.mean(), 2))
+    print("MAE CV std  (log target):", round(mae_cv.std(), 2))
+
+    return pipeline
+
+# =========================
+# 6. TRENING MODELI
+# =========================
+model_global = train_model(df, "GLOBAL")
+model_large = train_model(df_large, "LARGE")
+
+
+# =========================
+# 7. ZAPIS MODELI
+# =========================
+joblib.dump(
+    {
+        "threshold": SEGMENT_THRESHOLD,
+        "model_global": model_global,
+        "model_large": model_large,
+    },
+    MODEL_DIR / "hybrid_log_models.pkl"
 )
 
-# 7. Model
-model = RandomForestRegressor(
-    n_estimators=600,  # zwiększone dla lepszej stabilności
-    max_depth=None,
-    random_state=42,
-    n_jobs=-1
-)
-
-# 8. Pipeline
-pipeline = Pipeline(
-    steps=[
-        ("preprocessor", preprocessor),
-        ("model", model),
-    ]
-)
-
-# 9. Split danych
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-
-# 10. Trening modelu
-pipeline.fit(X_train, y_train)
-
-# 11. Ewaluacja
-y_pred = pipeline.predict(X_test)
-print("MAE (średni błąd):", round(mean_absolute_error(y_test, y_pred), 2))
-print("R2 (jakość modelu):", round(r2_score(y_test, y_pred), 3))
-
-# 12. Zapis modelu
-MODEL_PATH = Path(__file__).resolve().parent / "model.pkl"
-joblib.dump(pipeline, MODEL_PATH)
-print(f"✅ Model zapisany: {MODEL_PATH}")
+print("\n✅ Modele zapisane: hybrid_log_models.pkl")

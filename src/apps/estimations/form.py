@@ -10,11 +10,34 @@ class EstimationForm(forms.ModelForm):
 
     class Meta:
         model = EstimationInput
-        fields = ["width", "height", "shelves", "material_cost"]
+        fields = [
+            "naklad_szt",
+            "objetosc_m3",
+            "konstrukcja_kg",
+            "sklejka_m3",
+            "drewno_m3",
+            "plyta_m2",
+            "druk_m2",
+            "led_mb",
+            "tworzywa_m2",
+            "koszty_pozostale",
+            "stopien_skomplikowania",
+            "rodzaj_tworzywa",
+            "rodzaj_displaya",
+        ]
 
         widgets = {
-            "width": forms.NumberInput(attrs={"class": "form-control"}),
-            "height": forms.NumberInput(attrs={"class": "form-control"}),
-            "shelves": forms.NumberInput(attrs={"class": "form-control"}),
-            "material_cost": forms.NumberInput(attrs={"class": "form-control"}),
+            "naklad_szt": forms.NumberInput(attrs={"class": "form-control"}),
+            "objetosc_m3": forms.NumberInput(attrs={"class": "form-control"}),
+            "konstrukcja_kg": forms.NumberInput(attrs={"class": "form-control"}),
+            "sklejka_m3": forms.NumberInput(attrs={"class": "form-control"}),
+            "drewno_m3": forms.NumberInput(attrs={"class": "form-control"}),
+            "plyta_m2": forms.NumberInput(attrs={"class": "form-control"}),
+            "druk_m2": forms.NumberInput(attrs={"class": "form-control"}),
+            "led_mb": forms.NumberInput(attrs={"class": "form-control"}),
+            "tworzywa_m2": forms.NumberInput(attrs={"class": "form-control"}),
+            "koszty_pozostale": forms.NumberInput(attrs={"class": "form-control"}),
+            "stopien_skomplikowania": forms.NumberInput(attrs={"class": "form-control"}),
+            "rodzaj_tworzywa": forms.Select(attrs={"class": "form-control"}),
+            "rodzaj_displaya": forms.Select(attrs={"class": "form-control"}),
         }
