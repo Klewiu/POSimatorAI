@@ -27,7 +27,7 @@ class EstimationForm(forms.ModelForm):
         ]
 
         labels = {
-            "konstrukcja_kg": "Konstrukcja metalowa (kg)",
+            "konstrukcja_kg": "Konstrukcja metalowa kg",
         }
 
         widgets = {
