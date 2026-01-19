@@ -26,6 +26,10 @@ class EstimationForm(forms.ModelForm):
             "rodzaj_displaya",
         ]
 
+        labels = {
+            "konstrukcja_kg": "Konstrukcja metalowa (kg)",
+        }
+
         widgets = {
             "naklad_szt": forms.NumberInput(attrs={"class": "form-control"}),
             "objetosc_m3": forms.NumberInput(attrs={"class": "form-control"}),
