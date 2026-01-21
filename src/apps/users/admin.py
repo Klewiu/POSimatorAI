@@ -28,25 +28,3 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
 
-@admin.register(EstimationInput)
-class EstimationInputAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'naklad_szt', 'objetosc_m3', 'konstrukcja_kg',
-        'sklejka_m3', 'drewno_m3', 'plyta_m2', 'druk_m2',
-        'led_mb', 'tworzywa_m2', 'koszty_pozostale',
-        'stopien_skomplikowania', 'rodzaj_tworzywa', 'rodzaj_displaya'
-    )
-    list_filter = ('rodzaj_tworzywa', 'rodzaj_displaya', 'stopien_skomplikowania')
-    search_fields = ('rodzaj_tworzywa', 'rodzaj_displaya')
-    ordering = ('-id',)
-    readonly_fields = ('id',)
-
-@admin.register(EstimationResult)
-class EstimationResultAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'input_data', 'predicted_price', 'user_price', 'created_at'
-    )
-    list_filter = ('created_at',)
-    search_fields = ('input_data__rodzaj_displaya', 'input_data__rodzaj_tworzywa')
-    ordering = ('-created_at',)
-    readonly_fields = ('id', 'created_at')
