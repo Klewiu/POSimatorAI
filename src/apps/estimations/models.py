@@ -11,7 +11,9 @@ RODZAJ_TWORZYWA_CHOICES = [
     ('ABS', 'ABS'),
     ('NAKLEJKA', 'NAKLEJKA'),
     ('GUMA', 'GUMA'),
-    ('TKANINA', 'TKANINA')
+    ('TKANINA', 'TKANINA'),
+    ('DISPA', 'DISPA'),
+    ('KARTON', 'KARTON'),
 ]
 
 RODZAJ_DISPLAYA_CHOICES = [
