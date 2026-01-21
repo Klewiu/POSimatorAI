@@ -36,7 +36,13 @@
                   <td>{{ user.username }}</td>
                   <td>{{ user.email }}</td>
                   <td>
-                    {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}User{% endif %}
+                    {% if user.is_superuser %}
+                      Superuser
+                    {% elif user.is_admin %}
+                      Admin
+                    {% else %}
+                      Manager
+                    {% endif %}
                   </td>
                   <td class="text-end">
                     {% if not user.is_superuser %}

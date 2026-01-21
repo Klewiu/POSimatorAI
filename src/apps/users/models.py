@@ -14,4 +14,18 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
+        """Property do szablonów i logiki biznesowej"""
         return self.role == self.Role.ADMIN
+
+    def save(self, *args, **kwargs):
+        """
+        Ustawia is_staff automatycznie:
+        - każdy superuser zawsze ma is_staff=True
+        - użytkownik z rolą ADMIN ma is_staff=True
+        - reszta (np. Manager) ma is_staff=False
+        """
+        if self.is_superuser or self.role == self.Role.ADMIN:
+            self.is_staff = True
+        else:
+            self.is_staff = False
+        super().save(*args, **kwargs)

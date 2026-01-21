@@ -152,36 +152,34 @@ class GeminiVerifyPriceView(LoginRequiredMixin, View):
 
 def _build_price_check_prompt(submission):
     input_data = submission.input_data
+    predicted_price = submission.predicted_price  # cena z ML
+
     lines = [
-        "Podaj szacunkowa cene produkcji stojaka POS.",
-        "Bez marzy i bez kosztow sprzedazy.",
-        "Uwzglednij materialy, robocizne oraz koszty pozostale.",
-        "Nie uwzgledniaj marzy.",
-        "Korzystaj z Google Search dla cen materialow i robocizny.",
-        "Odpowiedz po polsku i zwroc tylko 3 linie:",
-        "Cena jednostkowa: <wartosc> PLN",
-        "Cena jednostkowa z uwzglednieniem nakladu: <wartosc> PLN (musi byc nizsza lub rowna cenie jednostkowej)",
-        "Krotki opis: <2-3 zdania>",
-        "Bez tabelek, bez wyliczen, bez naglowkow, bez wzorow.",
-        "Nie uwzgledniaj zadnych wczesniejszych wycen.",
+        "Masz podaną cenę jednostkową produkcji stojaka POS: "
+        f"{predicted_price} PLN.",
+        "Sprawdź, czy jest realistyczna w kontekście kosztów materiałów, robocizny i kosztów pozostałych.",
+        "Nie uwzględniaj marży ani kosztów sprzedaży.",
+        "Odpowiedz po polsku w trzech liniach:",
+        "1. Czy cena jest realistyczna? (tak/nie)",
+        "2. Krótki komentarz dlaczego.",
+        "3. Proponowana poprawka ceny w PLN jeśli uważasz, że jest błędna, lub napisz 'brak zmian'.",
         "",
-        "Szczegoly stojaka:",
-        f"- ilosc: {input_data.naklad_szt}",
-        f"- objetosc_m3: {input_data.objetosc_m3}",
-        f"- konstrukcja_kg: {input_data.konstrukcja_kg}",
-        f"- sklejka_m3: {input_data.sklejka_m3}",
-        f"- drewno_m3: {input_data.drewno_m3}",
-        f"- plyta_m2: {input_data.plyta_m2}",
-        f"- druk_m2: {input_data.druk_m2}",
-        f"- led_mb: {input_data.led_mb}",
-        f"- tworzywa_m2: {input_data.tworzywa_m2}",
-        f"- koszty_pozostale: {input_data.koszty_pozostale}",
-        f"- stopien_skomplikowania: {input_data.stopien_skomplikowania}",
-        f"- rodzaj_tworzywa: {input_data.rodzaj_tworzywa}",
-        f"- rodzaj_displaya: {input_data.rodzaj_displaya}",
+        "Szczegóły stojaka:",
+        f"- Nakład: {input_data.naklad_szt} szt.",
+        f"- Objętość: {input_data.objetosc_m3} m³",
+        f"- Konstrukcja: {input_data.konstrukcja_kg} kg",
+        f"- Sklejka: {input_data.sklejka_m3} m³",
+        f"- Drewno: {input_data.drewno_m3} m³",
+        f"- Płyta: {input_data.plyta_m2} m²",
+        f"- Druk: {input_data.druk_m2} m²",
+        f"- LED: {input_data.led_mb} mb",
+        f"- Tworzywa: {input_data.tworzywa_m2} m²",
+        f"- Koszty pozostałe: {input_data.koszty_pozostale} PLN",
+        f"- Stopień skomplikowania: {input_data.stopien_skomplikowania}",
+        f"- Rodzaj tworzywa: {input_data.rodzaj_tworzywa}",
+        f"- Rodzaj displaya: {input_data.rodzaj_displaya}",
     ]
     return "\n".join(lines)
-
 
 def _extract_gemini_text(response):
     text = getattr(response, "text", None) or ""
