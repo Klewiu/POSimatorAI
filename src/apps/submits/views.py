@@ -1,5 +1,7 @@
 import csv
 
+from decimal import Decimal
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse
 from django.urls import reverse_lazy
@@ -99,10 +101,19 @@ class SubmissionExportView(LoginRequiredMixin, View):
         writer.writerow(row)
         return response
 
-
 class SubmissionExportAllView(LoginRequiredMixin, View):
+
+    @staticmethod
+    def format_decimal(value):
+        if value is None:
+            return ""
+        if isinstance(value, (float, Decimal)):
+            return str(value).replace(".", ",")
+        return value
+
     def get(self, request):
         qs = Submission.objects.select_related("input_data", "user").order_by("-created_at")
+
         if not (request.user.is_staff or request.user.is_superuser):
             qs = qs.filter(user=request.user)
 
@@ -123,31 +134,43 @@ class SubmissionExportAllView(LoginRequiredMixin, View):
             "cena",
         ]
 
-        response = HttpResponse(content_type="text/csv")
+        response = HttpResponse(
+            content_type="text/csv; charset=utf-8"
+        )
+
         response["Content-Disposition"] = 'attachment; filename="submissions.csv"'
+
+        # UTF-8 BOM — Excel fix
+        response.write("\ufeff")
+
         writer = csv.writer(response, delimiter=";")
         writer.writerow(header)
 
         for submission in qs:
             input_data = submission.input_data
-            price_value = submission.user_price if submission.user_price is not None else submission.predicted_price
-            writer.writerow(
-                [
-                    input_data.naklad_szt,
-                    input_data.objetosc_m3,
-                    input_data.konstrukcja_kg,
-                    input_data.sklejka_m3,
-                    input_data.drewno_m3,
-                    input_data.plyta_m2,
-                    input_data.druk_m2,
-                    input_data.led_mb,
-                    input_data.tworzywa_m2,
-                    input_data.koszty_pozostale,
-                    input_data.rodzaj_tworzywa,
-                    input_data.rodzaj_displaya,
-                    input_data.stopien_skomplikowania,
-                    price_value,
-                ]
+
+            price_value = (
+                submission.user_price
+                if submission.user_price is not None
+                else submission.predicted_price
             )
 
+            writer.writerow([
+                self.format_decimal(input_data.naklad_szt),
+                self.format_decimal(input_data.objetosc_m3),
+                self.format_decimal(input_data.konstrukcja_kg),
+                self.format_decimal(input_data.sklejka_m3),
+                self.format_decimal(input_data.drewno_m3),
+                self.format_decimal(input_data.plyta_m2),
+                self.format_decimal(input_data.druk_m2),
+                self.format_decimal(input_data.led_mb),
+                self.format_decimal(input_data.tworzywa_m2),
+                self.format_decimal(input_data.koszty_pozostale),
+                input_data.rodzaj_tworzywa,
+                input_data.rodzaj_displaya,
+                input_data.stopien_skomplikowania,
+                self.format_decimal(price_value),
+            ])
+
         return response
+
