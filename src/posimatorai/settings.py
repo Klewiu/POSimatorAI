@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.estimations',
     'apps.users',
     'apps.submits',
+    'apps.reports',
     'widget_tweaks',
 
 ]

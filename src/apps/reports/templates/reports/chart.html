@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+  .chart-wrapper {
+    position: relative;
+    height: 380px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+      <div class="card card-soft p-4 p-md-5 mb-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+          <div>
+            <div class="brand-logo">
+              <span class="brand-mark">P</span>
+              POSimatorAI
+            </div>
+            <h1 class="mt-3 fw-bold mobile-title">Raport – wykresy cen</h1>
+            <p class="text-muted mobile-text-lg mb-0">Porównanie ceny użytkownika z ceną predykcji modelu AI.</p>
+          </div>
+          <div>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-lg">Powrót do panelu</a>
+          </div>
+        </div>
+
+        {% if labels %}
+          <!-- Chart 1: User Price vs Predicted Price -->
+          <h5 class="fw-bold mb-3">Cena użytkownika vs Cena predykcji</h5>
+          <div class="chart-wrapper mb-5">
+            <canvas id="priceChart"></canvas>
+          </div>
+
+          <!-- Chart 2: Residual Plot -->
+          <h5 class="fw-bold mb-3">Wykres reszt (residual plot)</h5>
+          <p class="text-muted mb-3">Reszta = Cena użytkownika − Cena predykcji. Wartości bliskie zeru oznaczają dobrą predykcję.</p>
+          <div class="chart-wrapper">
+            <canvas id="residualChart"></canvas>
+          </div>
+        {% else %}
+          <div class="alert alert-info mt-3">
+            Brak danych do wyświetlenia. Nie ma jeszcze żadnych estymacji z uzupełnioną ceną użytkownika.
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{{ labels|json_script:"data-labels" }}
+{{ user_prices|json_script:"data-user-prices" }}
+{{ predicted_prices|json_script:"data-predicted-prices" }}
+{{ residuals|json_script:"data-residuals" }}
+<script>
+  const labels = JSON.parse(document.getElementById('data-labels').textContent);
+  const userPrices = JSON.parse(document.getElementById('data-user-prices').textContent);
+  const predictedPrices = JSON.parse(document.getElementById('data-predicted-prices').textContent);
+  const residuals = JSON.parse(document.getElementById('data-residuals').textContent);
+
+  // Chart 1 – User Price vs Predicted Price
+  new Chart(document.getElementById('priceChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Cena użytkownika (PLN)',
+          data: userPrices,
+          backgroundColor: 'rgba(125, 206, 148, 0.7)',
+          borderColor: 'rgba(125, 206, 148, 1)',
+          borderWidth: 1,
+        },
+        {
+          label: 'Cena predykcji (PLN)',
+          data: predictedPrices,
+          backgroundColor: 'rgba(61, 61, 63, 0.5)',
+          borderColor: 'rgba(61, 61, 63, 0.8)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => value.toLocaleString('pl-PL') + ' PLN',
+          },
+        },
+      },
+    },
+  });
+
+  // Chart 2 – Residual Plot
+  new Chart(document.getElementById('residualChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Reszta (PLN)',
+          data: residuals,
+          backgroundColor: residuals.map(r =>
+            r >= 0 ? 'rgba(125, 206, 148, 0.7)' : 'rgba(220, 53, 69, 0.6)'
+          ),
+          borderColor: residuals.map(r =>
+            r >= 0 ? 'rgba(125, 206, 148, 1)' : 'rgba(220, 53, 69, 1)'
+          ),
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Reszta: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: value => value.toLocaleString('pl-PL') + ' PLN',
+          },
+        },
+      },
+    },
+  });
+</script>
+{% endif %}
+{% endblock %}
