@@ -32,7 +32,7 @@
         {% if labels %}
           <!-- Chart 1: User Price vs Predicted Price -->
           <h5 class="fw-bold mb-3">Cena użytkownika vs Cena predykcji</h5>
-          <p class="text-muted mb-3">Na drugim wykresie pokazana jest linia parametru nakład_szt oraz reszta, gdzie błąd = cena użytkownika − cena predykcji.</p>
+          <p class="text-muted mb-3">Najedź na słupek, aby zobaczyć dodatkowe informacje (w tym nakład_szt). Błąd = cena użytkownika − cena predykcji.</p>
           <div class="chart-wrapper mb-5">
             <canvas id="priceChart"></canvas>
           </div>
@@ -100,6 +100,13 @@
         tooltip: {
           callbacks: {
             label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            footer: items => {
+              if (!items.length) {
+                return '';
+              }
+              const index = items[0].dataIndex;
+              return `Nakład (szt.): ${nakladSztValues[index].toLocaleString('pl-PL')}`;
+            },
           },
         },
       },
@@ -114,7 +121,7 @@
     },
   });
 
-  // Chart 2 – Residual Plot + Naklad_szt Line
+  // Chart 2 – Residual Plot
   new Chart(document.getElementById('residualChart'), {
     type: 'bar',
     data: {
@@ -131,18 +138,6 @@
           ),
           borderWidth: 1,
         },
-        {
-          type: 'line',
-          label: 'Nakład_szt',
-          data: nakladSztValues,
-          borderColor: 'rgba(61, 61, 63, 1)',
-          backgroundColor: 'rgba(61, 61, 63, 0)',
-          borderWidth: 3,
-          tension: 0.25,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          yAxisID: 'y1',
-        },
       ],
     },
     options: {
@@ -153,6 +148,13 @@
         tooltip: {
           callbacks: {
             label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            footer: items => {
+              if (!items.length) {
+                return '';
+              }
+              const index = items[0].dataIndex;
+              return `Nakład (szt.): ${nakladSztValues[index].toLocaleString('pl-PL')}`;
+            },
           },
         },
       },
@@ -160,15 +162,6 @@
         y: {
           ticks: {
             callback: value => value.toLocaleString('pl-PL') + ' PLN',
-          },
-        },
-        y1: {
-          position: 'right',
-          grid: {
-            drawOnChartArea: false,
-          },
-          ticks: {
-            callback: value => value.toLocaleString('pl-PL'),
           },
         },
       },
