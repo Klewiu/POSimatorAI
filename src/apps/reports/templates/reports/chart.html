@@ -120,7 +120,7 @@
     },
   });
 
-  // Chart 2 – Residual Plot
+  // Chart 2 – Residual Plot + Trend Line
   new Chart(document.getElementById('residualChart'), {
     type: 'bar',
     data: {
@@ -158,7 +158,7 @@
         legend: { position: 'top' },
         tooltip: {
           callbacks: {
-            label: ctx => `Reszta: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
           },
         },
       },
