@@ -32,6 +32,7 @@
         {% if labels %}
           <!-- Chart 1: User Price vs Predicted Price -->
           <h5 class="fw-bold mb-3">Cena użytkownika vs Cena predykcji</h5>
+          <p class="text-muted mb-3">Wykres poniżej pokazuje także średnią kroczącą błędu predykcji (okno 5 punktów), gdzie błąd = cena użytkownika − cena predykcji.</p>
           <div class="chart-wrapper mb-5">
             <canvas id="priceChart"></canvas>
           </div>
@@ -66,6 +67,14 @@
   const userPrices = JSON.parse(document.getElementById('data-user-prices').textContent);
   const predictedPrices = JSON.parse(document.getElementById('data-predicted-prices').textContent);
   const residuals = JSON.parse(document.getElementById('data-residuals').textContent);
+
+  const movingAverageWindow = 5;
+  const movingAverageResiduals = residuals.map((_, idx) => {
+    const start = Math.max(0, idx - movingAverageWindow + 1);
+    const slice = residuals.slice(start, idx + 1);
+    const avg = slice.reduce((sum, value) => sum + value, 0) / slice.length;
+    return Number(avg.toFixed(2));
+  });
 
   // Chart 1 – User Price vs Predicted Price
   new Chart(document.getElementById('priceChart'), {
@@ -127,6 +136,18 @@
             r >= 0 ? 'rgba(125, 206, 148, 1)' : 'rgba(220, 53, 69, 1)'
           ),
           borderWidth: 1,
+        },
+        {
+          type: 'line',
+          label: 'Średnia krocząca błędu (5)',
+          data: movingAverageResiduals,
+          borderColor: 'rgba(61, 61, 63, 1)',
+          backgroundColor: 'rgba(61, 61, 63, 0)',
+          borderWidth: 3,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          yAxisID: 'y',
         },
       ],
     },
