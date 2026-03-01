@@ -32,7 +32,7 @@
         {% if labels %}
           <!-- Chart 1: User Price vs Predicted Price -->
           <h5 class="fw-bold mb-3">Cena użytkownika vs Cena predykcji</h5>
-          <p class="text-muted mb-3">Wykres poniżej pokazuje także linię trendu błędu predykcji, gdzie błąd = cena użytkownika − cena predykcji.</p>
+          <p class="text-muted mb-3">Na drugim wykresie pokazana jest linia parametru nakład_szt oraz reszta, gdzie błąd = cena użytkownika − cena predykcji.</p>
           <div class="chart-wrapper mb-5">
             <canvas id="priceChart"></canvas>
           </div>
@@ -62,23 +62,13 @@
 {{ user_prices|json_script:"data-user-prices" }}
 {{ predicted_prices|json_script:"data-predicted-prices" }}
 {{ residuals|json_script:"data-residuals" }}
+{{ naklad_szt_values|json_script:"data-naklad-szt" }}
 <script>
   const labels = JSON.parse(document.getElementById('data-labels').textContent);
   const userPrices = JSON.parse(document.getElementById('data-user-prices').textContent);
   const predictedPrices = JSON.parse(document.getElementById('data-predicted-prices').textContent);
   const residuals = JSON.parse(document.getElementById('data-residuals').textContent);
-
-  const xValues = residuals.map((_, idx) => idx + 1);
-  const n = xValues.length;
-  const sumX = xValues.reduce((sum, value) => sum + value, 0);
-  const sumY = residuals.reduce((sum, value) => sum + value, 0);
-  const sumXY = xValues.reduce((sum, x, idx) => sum + x * residuals[idx], 0);
-  const sumX2 = xValues.reduce((sum, x) => sum + x * x, 0);
-  const denominator = n * sumX2 - sumX * sumX;
-
-  const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
-  const intercept = n === 0 ? 0 : (sumY - slope * sumX) / n;
-  const trendLineResiduals = xValues.map(x => Number((slope * x + intercept).toFixed(2)));
+  const nakladSztValues = JSON.parse(document.getElementById('data-naklad-szt').textContent);
 
   // Chart 1 – User Price vs Predicted Price
   new Chart(document.getElementById('priceChart'), {
@@ -124,7 +114,7 @@
     },
   });
 
-  // Chart 2 – Residual Plot + Trend Line
+  // Chart 2 – Residual Plot + Naklad_szt Line
   new Chart(document.getElementById('residualChart'), {
     type: 'bar',
     data: {
@@ -143,15 +133,15 @@
         },
         {
           type: 'line',
-          label: 'Linia trendu błędu',
-          data: trendLineResiduals,
+          label: 'Nakład_szt',
+          data: nakladSztValues,
           borderColor: 'rgba(61, 61, 63, 1)',
           backgroundColor: 'rgba(61, 61, 63, 0)',
           borderWidth: 3,
-          tension: 0,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          yAxisID: 'y',
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          yAxisID: 'y1',
         },
       ],
     },
@@ -170,6 +160,15 @@
         y: {
           ticks: {
             callback: value => value.toLocaleString('pl-PL') + ' PLN',
+          },
+        },
+        y1: {
+          position: 'right',
+          grid: {
+            drawOnChartArea: false,
+          },
+          ticks: {
+            callback: value => value.toLocaleString('pl-PL'),
           },
         },
       },
