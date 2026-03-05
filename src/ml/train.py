@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, RepeatedKFold
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
@@ -88,7 +88,7 @@ def train_model(df_train):
 
     # Parametry modelu
     rf_params = dict(
-        n_estimators=600,
+        n_estimators=500,
         max_depth=10,
         min_samples_leaf=3,
         min_samples_split=5,
@@ -105,23 +105,29 @@ def train_model(df_train):
         ]
     )
 
+    # =========================
+    # Split na trening/test
+    # =========================
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
     pipeline.fit(X_train, y_train)
-
     y_pred = pipeline.predict(X_test)
 
     mae_test = mean_absolute_error(y_test, y_pred)
     r2_test = r2_score(y_test, y_pred)
 
+    # =========================
+    # Repeated K-Fold CV
+    # =========================
+    cv = RepeatedKFold(n_splits=5, n_repeats=3, random_state=42)
     mae_cv = -cross_val_score(
         pipeline,
         X,
         y,
         scoring="neg_mean_absolute_error",
-        cv=5,
+        cv=cv,
         n_jobs=-1
     )
 

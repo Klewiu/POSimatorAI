@@ -22,7 +22,11 @@
         {% for field in form %}
           <div class="col-12 col-md-6">
             <label class="form-label mobile-text-lg" for="{{ field.id_for_label }}">
-              {{ field.label }}
+              {% if field.name == "sklejka_m3" %}
+                Sklejka <span class="text-danger fw-bold">m3</span>
+              {% else %}
+                {{ field.label }}
+              {% endif %}
             </label>
             {% if field.field.widget.input_type == "select" %}
               {{ field|add_class:"form-select form-select-lg" }}
