@@ -31,7 +31,7 @@
           <tbody>
             {% for submission in submissions %}
               <tr>
-                <td>{{ forloop.counter }}</td>
+                <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
                 <td>{{ submission.user.username }}</td>
                 <td>{{ submission.created_at|date:"Y-m-d H:i" }}</td>
                 <td class="text-end">
@@ -51,6 +51,40 @@
           </tbody>
         </table>
       </div>
+
+      {% if is_paginated %}
+        <nav class="mt-4" aria-label="Paginacja estymacji">
+          <ul class="pagination justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1">Pierwsza</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Poprzednia</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Pierwsza</span></li>
+              <li class="page-item disabled"><span class="page-link">Poprzednia</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">Strona {{ page_obj.number }} z {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Następna</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Ostatnia</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Następna</span></li>
+              <li class="page-item disabled"><span class="page-link">Ostatnia</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
     </div>
   </div>
 </div>
