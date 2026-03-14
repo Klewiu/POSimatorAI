@@ -16,6 +16,14 @@ class EstimationView(LoginRequiredMixin, FormView):
     form_class = EstimationForm
     success_url = "/estimations/result/"
 
+    def get_initial(self):
+        initial = super().get_initial()
+        for field_name in self.form_class.base_fields:
+            value = self.request.GET.get(field_name)
+            if value not in (None, ""):
+                initial[field_name] = value
+        return initial
+
     def form_valid(self, form):
         input_data = form.save()
 

@@ -1,10 +1,12 @@
 import csv
+from urllib.parse import urlencode
 
 from decimal import Decimal
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView, DetailView, ListView, View
 
 from .models import Submission
@@ -54,7 +56,10 @@ class SubmissionDeleteView(LoginRequiredMixin, DeleteView):
 class SubmissionExportView(LoginRequiredMixin, View):
     def get(self, request, pk):
         submission = Submission.objects.select_related("input_data", "user").get(pk=pk)
-        if not (request.user.is_staff or request.user.is_superuser) and submission.user_id != request.user.id:
+        if (
+            not (request.user.is_staff or request.user.is_superuser)
+            and submission.user_id != request.user.id
+        ):
             raise Http404()
 
         input_data = submission.input_data
@@ -100,6 +105,42 @@ class SubmissionExportView(LoginRequiredMixin, View):
         writer.writerow(header)
         writer.writerow(row)
         return response
+
+
+class SubmissionCloneView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        submission = get_object_or_404(
+            Submission.objects.select_related("input_data", "user"),
+            pk=pk,
+        )
+        if (
+            not (request.user.is_staff or request.user.is_superuser)
+            and submission.user_id != request.user.id
+        ):
+            raise Http404()
+
+        input_data = submission.input_data
+        clone_params = {
+            "naklad_szt": input_data.naklad_szt,
+            "objetosc_m3": input_data.objetosc_m3,
+            "konstrukcja_kg": input_data.konstrukcja_kg,
+            "sklejka_m3": input_data.sklejka_m3,
+            "drewno_m3": input_data.drewno_m3,
+            "plyta_m2": input_data.plyta_m2,
+            "druk_m2": input_data.druk_m2,
+            "led_mb": input_data.led_mb,
+            "tworzywa_m2": input_data.tworzywa_m2,
+            "koszty_pozostale": input_data.koszty_pozostale,
+            "stopien_skomplikowania": input_data.stopien_skomplikowania,
+            "rodzaj_tworzywa": input_data.rodzaj_tworzywa or "",
+            "rodzaj_displaya": input_data.rodzaj_displaya,
+        }
+        if submission.user_price is not None:
+            clone_params["user_price"] = submission.user_price
+
+        query = urlencode(clone_params)
+        return redirect(f"{reverse('estimations')}?{query}")
+
 
 class SubmissionExportAllView(LoginRequiredMixin, View):
 

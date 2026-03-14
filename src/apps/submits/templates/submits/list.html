@@ -36,6 +36,7 @@
                 <td>{{ submission.created_at|date:"Y-m-d H:i" }}</td>
                 <td class="text-end">
                   <div class="d-grid d-md-inline-flex gap-2">
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'submits-clone' submission.pk %}">Klonuj</a>
                     <a class="btn btn-sm btn-brand" href="{% url 'submits-detail' submission.pk %}">Szczegóły</a>
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'submits-export' submission.pk %}">CSV</a>
                     <a class="btn btn-sm btn-outline-danger" href="{% url 'submits-delete' submission.pk %}">Usuń</a>
