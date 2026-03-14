@@ -32,6 +32,7 @@
         {% if labels %}
           <!-- Chart 1: User Price vs Predicted Price -->
           <h5 class="fw-bold mb-3">Cena użytkownika vs Cena predykcji</h5>
+          <p class="text-muted mb-3">Najedź na słupek, aby zobaczyć dodatkowe informacje (w tym nakład_szt). Błąd = cena użytkownika − cena predykcji.</p>
           <div class="chart-wrapper mb-5">
             <canvas id="priceChart"></canvas>
           </div>
@@ -61,11 +62,13 @@
 {{ user_prices|json_script:"data-user-prices" }}
 {{ predicted_prices|json_script:"data-predicted-prices" }}
 {{ residuals|json_script:"data-residuals" }}
+{{ naklad_szt_values|json_script:"data-naklad-szt" }}
 <script>
   const labels = JSON.parse(document.getElementById('data-labels').textContent);
   const userPrices = JSON.parse(document.getElementById('data-user-prices').textContent);
   const predictedPrices = JSON.parse(document.getElementById('data-predicted-prices').textContent);
   const residuals = JSON.parse(document.getElementById('data-residuals').textContent);
+  const nakladSztValues = JSON.parse(document.getElementById('data-naklad-szt').textContent);
 
   // Chart 1 – User Price vs Predicted Price
   new Chart(document.getElementById('priceChart'), {
@@ -97,6 +100,13 @@
         tooltip: {
           callbacks: {
             label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            footer: items => {
+              if (!items.length) {
+                return '';
+              }
+              const index = items[0].dataIndex;
+              return `Nakład (szt.): ${nakladSztValues[index].toLocaleString('pl-PL')}`;
+            },
           },
         },
       },
@@ -137,7 +147,14 @@
         legend: { position: 'top' },
         tooltip: {
           callbacks: {
-            label: ctx => `Reszta: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN`,
+            footer: items => {
+              if (!items.length) {
+                return '';
+              }
+              const index = items[0].dataIndex;
+              return `Nakład (szt.): ${nakladSztValues[index].toLocaleString('pl-PL')}`;
+            },
           },
         },
       },

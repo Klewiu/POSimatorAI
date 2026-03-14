@@ -11,6 +11,8 @@ from apps.submits.models import Submission
 from ml.predict import MODEL  # importujemy model z predict.py
 from google import genai
 from google.genai import types
+
+
 class EstimationView(LoginRequiredMixin, FormView):
     template_name = "estimations/form.html"
     form_class = EstimationForm
@@ -110,38 +112,57 @@ class GeminiVerifyPriceView(LoginRequiredMixin, View):
 
         prompt = _build_price_check_prompt(submission)
         client = genai.Client(api_key=api_key)
+        model_name = getattr(settings, "GEMINI_MODEL", "gemini-flash-latest")
+        use_google_search = getattr(settings, "GEMINI_USE_GOOGLE_SEARCH", True)
+        allow_fallback_without_search = getattr(
+            settings,
+            "GEMINI_ALLOW_FALLBACK_WITHOUT_SEARCH",
+            True,
+        )
+        fallback_without_search = False
+
         try:
-            response = client.models.generate_content(
-                model=getattr(settings, "GEMINI_MODEL", "gemini-flash-latest"),
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
-                    max_output_tokens=1536,
-                ),
+            response = _request_gemini(
+                client=client,
+                model_name=model_name,
+                prompt=prompt,
+                use_google_search=use_google_search,
             )
         except Exception as exc:
-            message = str(exc)
-            if "RESOURCE_EXHAUSTED" in message or "429" in message:
+            if _is_quota_error(exc) and use_google_search and allow_fallback_without_search:
+                try:
+                    response = _request_gemini(
+                        client=client,
+                        model_name=model_name,
+                        prompt=prompt,
+                        use_google_search=False,
+                    )
+                    fallback_without_search = True
+                except Exception as fallback_exc:
+                    if _is_quota_error(fallback_exc):
+                        return JsonResponse(
+                            {
+                                "error": "Przekroczono limit zapytań Gemini dla tego klucza API. Spróbuj ponownie jutro lub zwiększ limit w Google AI Studio."
+                            },
+                            status=429,
+                        )
+                    return JsonResponse(
+                        {"error": f"Gemini request failed: {fallback_exc}"},
+                        status=502,
+                    )
+
+            elif _is_quota_error(exc):
                 return JsonResponse(
-                    {"error": "Wykorzystano 20 dziennych zapytań, sprawdź jutro."},
+                    {
+                        "error": "Przekroczono limit zapytań Gemini dla tego klucza API. Spróbuj ponownie jutro lub zwiększ limit w Google AI Studio."
+                    },
                     status=429,
                 )
-            return JsonResponse(
-                {"error": f"Gemini request failed: {exc}"},
-                status=502,
-            )
-
-        if _finish_reason_max_tokens(response):
-            response = client.models.generate_content(
-                model=getattr(settings, "GEMINI_MODEL", "gemini-flash-latest"),
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
-                    max_output_tokens=3072,
-                ),
-            )
+            else:
+                return JsonResponse(
+                    {"error": f"Gemini request failed: {exc}"},
+                    status=502,
+                )
 
         text = _extract_gemini_text(response)
 
@@ -153,6 +174,12 @@ class GeminiVerifyPriceView(LoginRequiredMixin, View):
                     "diagnostics": diagnostics,
                 },
                 status=502,
+            )
+
+        if fallback_without_search:
+            text = (
+                "Uwaga: osiągnięto limit Google Search dla Gemini, więc odpowiedź wygenerowano bez wyszukiwania online.\n\n"
+                + text
             )
 
         return JsonResponse({"text": text})
@@ -212,6 +239,29 @@ def _extract_gemini_text(response):
     return ""
 
 
+def _request_gemini(client, model_name, prompt, use_google_search):
+    config_kwargs = {
+        "temperature": 0.2,
+        "max_output_tokens": 3072,
+    }
+    if use_google_search:
+        config_kwargs["tools"] = [types.Tool(google_search=types.GoogleSearch())]
+
+    return client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=types.GenerateContentConfig(**config_kwargs),
+    )
+
+
+def _is_quota_error(exc):
+    message = str(exc).lower()
+    return any(
+        marker in message
+        for marker in ("resource_exhausted", "429", "quota", "rate limit", "daily")
+    )
+
+
 def _gemini_diagnostics(response):
     diagnostics = {}
     prompt_feedback = getattr(response, "prompt_feedback", None)
@@ -235,12 +285,3 @@ def _gemini_diagnostics(response):
         diagnostics["candidates"] = candidate_info
 
     return diagnostics
-
-
-def _finish_reason_max_tokens(response):
-    candidates = getattr(response, "candidates", None) or []
-    for candidate in candidates:
-        finish_reason = getattr(candidate, "finish_reason", None)
-        if finish_reason and str(finish_reason) == "FinishReason.MAX_TOKENS":
-            return True
-    return False
