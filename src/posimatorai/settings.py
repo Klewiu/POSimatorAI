@@ -15,7 +15,7 @@ load_dotenv(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
 GEMINI_USE_GOOGLE_SEARCH = os.getenv('GEMINI_USE_GOOGLE_SEARCH', '1').lower() in ('1', 'true', 'yes', 'on')
 GEMINI_ALLOW_FALLBACK_WITHOUT_SEARCH = os.getenv('GEMINI_ALLOW_FALLBACK_WITHOUT_SEARCH', '1').lower() in ('1', 'true', 'yes', 'on')
 
