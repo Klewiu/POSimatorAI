@@ -191,7 +191,7 @@ def _build_price_check_prompt(submission):
 
     lines = [
         "Masz podaną cenę jednostkową produkcji stojaka POS: "
-        f"{predicted_price} PLN.",
+        f"{predicted_price} PLN przy danym nakładzie produkcyjnym {input_data.naklad_szt} sztuk.",
         "Sprawdź, czy jest realistyczna w kontekście kosztów materiałów, robocizny i kosztów pozostałych.",
         "Nie uwzględniaj marży ani kosztów sprzedaży.",
         "Odpowiedz po polsku w trzech liniach wyświetlając również poniższe pytania:",
@@ -200,7 +200,6 @@ def _build_price_check_prompt(submission):
         "3. Proponowana poprawka ceny w PLN jeśli uważasz, że jest błędna, lub napisz 'brak zmian'.",
         "",
         "Szczegóły stojaka:",
-        f"- Nakład: {input_data.naklad_szt} szt.",
         f"- Objętość: {input_data.objetosc_m3} m³",
         f"- Konstrukcja: {input_data.konstrukcja_kg} kg",
         f"- Sklejka: {input_data.sklejka_m3} m³",
